@@ -157,6 +157,9 @@ class CaptchaAction extends Action
 
         $backgroundImageIndex = mt_rand(1, $this->backgroundImageMax);
         $backgroundImageFile = $this->backgroundImagePath . DIRECTORY_SEPARATOR . $backgroundImageIndex . '.png';
+        if (!is_file($backgroundImageFile)) {
+            throw new InvalidConfigException("The background image file does not exist: {$backgroundImageFile}");
+        }
 
         if (isset($this->imageLibrary)) {
             $imageLibrary = $this->imageLibrary;
