@@ -1,0 +1,21 @@
+{
+  "name": "choate/yii2-drag-captcha",
+  "type": "project",
+  "description": "Yii2 Drag Captcha",
+  "require": {
+    "yiisoft/yii2": "^2.0"
+  },
+  "license": "BSD-3-Clause",
+  "authors": [
+    {
+      "name": "Choate",
+      "email": "choate.yao@gmail.com"
+    }
+  ],
+  "minimum-stability": "stable",
+  "autoload": {
+    "psr-4": {
+      "choate\\yii2\\dragcaptcha\\": "src"
+    }
+  }
+}
