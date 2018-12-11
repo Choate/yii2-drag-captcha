@@ -12,8 +12,6 @@ use yii\web\Response;
 class CaptchaAction extends Action
 {
 
-    const REFRESH_GET_VAR = 'refresh';
-
     public $testLimit = 3;
 
     public $width = 240;
@@ -22,11 +20,11 @@ class CaptchaAction extends Action
 
     public $backgroundImageMax = 6;
 
-    public $backgroundImagePath = '@choate/yii2/dragcaptcha/assets/images/background';
+    public $backgroundImagePath = __DIR__ . '/assets/images/background';
 
-    public $placeholderImageFile = '@choate/yii2/dragcaptcha/assets/images/placeholder.png';
+    public $placeholderImageFile = __DIR__ . '/assets/images/placeholder.png';
 
-    public $placeholderModuleImageFile = '@choate/yii2/dragcaptcha/assets/images/placeholder_module.png';
+    public $placeholderModuleImageFile = __DIR__ . '/assets/images/placeholder_module.png';
 
     public $placeholderWidth = 50;
 
@@ -36,6 +34,9 @@ class CaptchaAction extends Action
 
     public $imageLibrary;
 
+    /**
+     * @var string xAxis,yAxis
+     */
     public $fixedVerifyCode;
 
 
@@ -44,7 +45,6 @@ class CaptchaAction extends Action
      */
     public function init()
     {
-        Yii::setAlias('@choate/yii2/dragcaptcha', __DIR__);
         $this->backgroundImagePath = Yii::getAlias($this->backgroundImagePath);
         $this->placeholderImageFile = Yii::getAlias($this->placeholderImageFile);
         $this->placeholderModuleImageFile = Yii::getAlias($this->placeholderModuleImageFile);
@@ -66,18 +66,9 @@ class CaptchaAction extends Action
      */
     public function run()
     {
-        if (Yii::$app->request->getQueryParam(self::REFRESH_GET_VAR) !== null) {
-            // AJAX request for regenerating code
-            $this->getVerifyCode(true);
-            Yii::$app->response->format = Response::FORMAT_JSON;
-            return [
-                'url' => Url::to([$this->id, 'v' => uniqid('', true)]),
-            ];
-        }
-
-        $this->setHttpHeaders();
         Yii::$app->response->format = Response::FORMAT_RAW;
         list($xAxis, $yAxis) = explode(',', $this->getVerifyCode(true));
+        $this->setHttpHeaders();
 
         return $this->renderImage($xAxis, $yAxis);
     }
@@ -106,13 +97,13 @@ class CaptchaAction extends Action
 
     /**
      * Validates the input to see if it matches the generated code.
-     * @param string $input user input
+     * @param int $input user input
      * @return bool whether the input is valid
      */
     public function validate($input)
     {
         list($xAxis, $yAxis) = explode(',', $this->getVerifyCode());
-        $valid = abs($xAxis - $input) <= $this->faultTolerance;
+        $valid = abs($xAxis - (float)$input) <= $this->faultTolerance;
         $session = Yii::$app->getSession();
         $session->open();
         $name = $this->getSessionKey() . 'count';
@@ -176,8 +167,8 @@ class CaptchaAction extends Action
 
     protected function renderImageByGD($backgroundImageFile, $xAxis, $yAxis)
     {
-
         $backgroundImage = imagecreatefrompng($backgroundImageFile);
+        list($backgroundWidth, $backgroundHeight,) = getimagesize($backgroundImageFile);
 
         // 创建模块图片
         $placeholderModuleImage = imagecreatefrompng($this->placeholderModuleImageFile);
@@ -191,7 +182,7 @@ class CaptchaAction extends Action
         $placeholderImage = imagecreatefrompng($this->placeholderImageFile);
         $backgroundCanvasImage = imagecreatetruecolor($this->width, $this->height);
         // 把占位图放到背景图中的某一处
-        imagecopy($backgroundCanvasImage, $backgroundImage, 0, 0, 0, 0, $this->width, $this->height);
+        imagecopyresampled($backgroundCanvasImage, $backgroundImage, 0, 0, 0, 0, $this->width, $this->height, $backgroundWidth, $backgroundHeight);
         imagecolortransparent($placeholderImage, 0);
         imagecopy($backgroundCanvasImage, $placeholderImage, $xAxis, $yAxis, 0, 0, $this->placeholderWidth, $this->placeholderHeight);
 
@@ -199,12 +190,12 @@ class CaptchaAction extends Action
         $canvasImage = imagecreatetruecolor($this->width, $this->height * 3);
         imagecopy($canvasImage, $backgroundCanvasImage, 0, 0, 0, 0, $this->width, $this->height);
         imagecopy($canvasImage, $placeholderModuleCanvasImage, 0, $this->height, 0, 0, $this->width, $this->height);
-        imagecopy($canvasImage, $backgroundImage, 0, $this->height * 2, 0, 0, $this->width, $this->height);
+        imagecopyresampled($canvasImage, $backgroundImage, 0, $this->height * 2, 0, 0, $this->width, $this->height, $backgroundWidth, $backgroundHeight);
         imagecolortransparent($canvasImage, 0);
 
         // 输出图片
         ob_start();
-        imagepng($canvasImage);
+        imagepng($canvasImage, null, 5);
 
         // 销毁图片
         imagedestroy($backgroundImage);
