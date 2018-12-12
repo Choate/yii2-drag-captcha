@@ -103,7 +103,8 @@ class CaptchaAction extends Action
     public function validate($input)
     {
         list($xAxis, $yAxis) = explode(',', $this->getVerifyCode());
-        $valid = abs($xAxis - (float)$input) <= $this->faultTolerance;
+        list($targetXAxis, $targetYAxis) = explode(',', $input);
+        $valid = abs($xAxis - $targetXAxis) <= $this->faultTolerance;
         $session = Yii::$app->getSession();
         $session->open();
         $name = $this->getSessionKey() . 'count';
